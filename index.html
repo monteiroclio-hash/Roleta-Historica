@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roleta da História - Escola Antônio Alves</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #e74c3c;
+            --accent: #f1c40f;
+            --light: #ecf0f1;
+            --dark: #34495e;
+            --success: #2ecc71;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            color: var(--primary);
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: var(--secondary);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--dark);
+            transform: scale(1.05);
+        }
+
+        button.btn-secondary {
+            background-color: var(--secondary);
+        }
+
+        button.btn-secondary:hover {
+            background-color: #c0392b;
+        }
+
+        .grid-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        @media(min-width: 600px) {
+            .grid-buttons {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Canvas da Roleta */
+        .roulette-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 20px auto;
+        }
+
+        #canvas {
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1);
+        }
+
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid var(--secondary);
+            z-index: 10;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border-left: 5px solid var(--accent);
+            display: none;
+        }
+
+        .result-box h3 {
+            font-size: 1.4rem;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .points-badge {
+            display: inline-block;
+            background-color: var(--accent);
+            color: #000;
+            padding: 4px 8px;
+            font-weight: bold;
+            border-radius: 4px;
+            margin-top: 5px;
+            margin-right: 5px;
+        }
+
+        /* Estilos do Cronômetro */
+        .timer-container {
+            margin: 15px auto 5px auto;
+            padding: 10px;
+            background: #f1f2f6;
+            border-radius: 8px;
+            max-width: 250px;
+            display: none;
+        }
+
+        #timer-display {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: var(--primary);
+            font-family: monospace;
+            transition: color 0.3s;
+        }
+
+        .timer-urgent {
+            color: var(--secondary) !important;
+            animation: piscar 1s infinite;
+        }
+
+        @keyframes piscar {
+            50% { opacity: 0.5; }
+        }
+
+        .back-btn {
+            margin-top: 20px;
+            background-color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Escola Antônio Alves</h1>
+        <p>Jogo da Roleta Histórica</p>
+    </header>
+
+    <div class="container">
+        <!-- PASSO 1: Seleção do Ano -->
+        <div id="step-ano" class="step active">
+            <h2>Escolha o Ano Letivo:</h2>
+            <button onclick="selectAno('7')">7º Ano</button>
+            <button onclick="selectAno('8')">8º Ano</button>
+        </div>
+
+        <!-- PASSO 2: Seleção do Nível -->
+        <div id="step-nivel" class="step">
+            <h2 id="nivel-titulo">Escolha o Conteúdo:</h2>
+            <div id="nivel-buttons" class="grid-buttons"></div>
+            <button class="back-btn" onclick="goBack('step-ano')">Voltar</button>
+        </div>
+
+        <!-- PASSO 3: A Roleta -->
+        <div id="step-jogo" class="step">
+            <h2 id="jogo-titulo">Nível</h2>
+            <p style="color: #666; margin-bottom: 10px;">Clique em "Girar" para sortear um tema do glossário!</p>
+            
+            <div class="roulette-container">
+                <div class="pointer"></div>
+                <canvas id="canvas" width="320" height="320"></canvas>
+            </div>
+
+            <button id="spin-btn" class="btn-secondary" onclick="spinWheel()">GIRAR ROLETA</button>
+            
+            <!-- Caixa de Resultados -->
+            <div id="result" class="result-box">
+                <p>Tema Sorteado:</p>
+                <h3 id="sorteado-nome">Conteúdo</h3>
+                <span class="points-badge">Vale 2 Pontos</span>
+                
+                <!-- Sessão do Cronômetro -->
+                <div id="timer-box" class="timer-container">
+                    <div id="timer-display">01:00</div>
+                    <button id="timer-ctrl-btn" style="padding: 6px 12px; font-size: 0.85rem; margin: 5px 0 0 0;" onclick="toggleTimer()">Iniciar Tempo</button>
+                </div>
+            </div>
+
+            <br>
+            <button class="back-btn" onclick="resetPageAndGoBack()">Mudar de Nível</button>
+        </div>
+    </div>
+
+    <script>
+        // Dados do Jogo
+        const jogoDados = {
+            '7': [
+                { nome: "Grandes Navegações", itens: ["Grandes Navegações", "Especiarias", "Índias", "Técnicas de Navegações", "Portugal, pioneiro", "Espanha e as Navegações", "Cristóvão Colombo", "Tratado de Tordesilhas", "Chegada dos Portugueses"] },
+                { nome: "Conquista e Colonização da América Espanhola", itens: ["Hernán Cortez", "Francisco Pizarro", "Mita", "Encomienda", "Plantation", "Conselho das Índias", "Casa de Contratação", "Capitanias Gerais", "Cabildos", "Grupos Sociais"] },
+                { nome: "América Portuguesa: Colonização", itens: ["Feitorias", "Capitanias Hereditárias", "Sesmarias", "Governo-Geral", "Guerras Justas", "Câmaras Municipais", "Engenho Colonial", "Senhor de Engenho", "Senzala", "Casa Grande"] }
+            ],
+            '8': [
+                { nome: "Independências: Haiti e América Espanhola", itens: ["Independência", "Haiti", "Independência do Haiti", "América Espanhola", "Grupos Sociais", "José de San Martín", "Simón Bolívar", "Indep. do México", "Críollos", "Chapetones"] },
+                { nome: "A Chegada da Família Real Portuguesa e a Emancipação Política do Brasil", itens: ["Vinda da Família Real", "Interiorização da Metrópole", "Abertura dos Portos", "Tratado de Navegação", "Administração Joanina", "Revolução Pernambucana", "Revolução do Porto", "Emancipação Política"] },
+                { nome: "O Reinado de D. Pedro I: uma cidadania limitada", itens: ["Primeiro Reinado", "Assembleia Constituinte", "A Noite da Agonia", "Conselho de Estado", "Constituição de 1824", "Poder Moderador", "Confederação do Equador", "Noite das Garrafadas", "Questão Cisplatina", "Abdicação"] },
+                { nome: "Regências: unidade ameaçada", itens: ["Período Regencial", "Regência Trina e Una", "Grupos Políticos", "Guarda Nacional", "Ato Adicional de 1834", "Cabanagem", "Guerra dos Farrapos", "Revolta dos Malês", "Sabinada", "Balaiada"] }
+            ]
+        };
+
+        let anoSelecionado = '';
+        let nivelSelecionado = null;
+        let itensAtuais = [];
+        let isSpinning = false;
+        let currentRotation = 0;
+
+        // Variáveis do Cronômetro e Som
+        let timerInterval = null;
+        let timeLeft = 60; 
+        let timerRunning = false;
+        let audioCtx = null;
+
+        const cores = ["#1abc9c", "#2ecc71", "#3498db", "#9b59b6", "#34495e", "#f1c40f", "#e67e22", "#e74c3c", "#95a5a6", "#16a085"];
+
+        // Navegação entre as etapas
+        function showStep(stepId) {
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(stepId).classList.add('active');
+        }
+
+        function goBack(stepId) {
+            showStep(stepId);
+        }
+
+        function resetPageAndGoBack() {
+            resetTimer();
+            document.getElementById('result').style.display = 'none';
+            goBack('step-nivel');
+        }
+
+        function selectAno(ano) {
+            anoSelecionado = ano;
+            const niveis = jogoDados[ano];
+            const btnContainer = document.getElementById('nivel-buttons');
+            btnContainer.innerHTML = '';
+            
+            niveis.forEach((nivel, index) => {
+                const btn = document.createElement('button');
+                btn.innerText = nivel.nome;
+                btn.onclick = () => selectNivel(index);
+                btnContainer.appendChild(btn);
+            });
+            showStep('step-nivel');
+        }
+
+        function selectNivel(index) {
+            nivelSelecionado = jogoDados[anoSelecionado][index];
+            itensAtuais = nivelSelecionado.itens;
+            document.getElementById('jogo-titulo').innerText = nivelSelecionado.nome;
+            drawWheel();
+            showStep('step-jogo');
+        }
+
+        // Desenhar Roleta
+        function drawWheel() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const radius = canvas.width / 2;
+            const sliceAngle = (2 * Math.PI) / itensAtuais.length;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = 0; i < itensAtuais.length; i++) {
+                const angle = i * sliceAngle;
+                
+                // Fatias
+                ctx.beginPath();
+                ctx.moveTo(radius, radius);
+                ctx.arc(radius, radius, radius, angle, angle + sliceAngle);
+                ctx.fillStyle = cores[i % cores.length];
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#fff";
+                ctx.stroke();
+
+                // Textos
+                ctx.save();
+                ctx.translate(radius, radius);
+                ctx.rotate(angle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#fff';
+                ctx.font = '13px bold Arial';
+                let text = itensAtuais[i];
+                if (text.length > 15) text = text.substring(0, 14) + '...';
+                ctx.fillText(text, radius - 15, 5);
+                ctx.restore();
+            }
+        }
+
+        // Girar Roleta
+        function spinWheel() {
+            if (isSpinning) return;
+            initAudio(); // Ativa áudio no primeiro clique
+            isSpinning = true;
+            resetTimer();
+            document.getElementById('result').style.display = 'none';
+
+            // Adiciona rotação extra aleatória (5 a 10 voltas + aleatório)
+            const spins = Math.floor(Math.random() * 5) + 5;
+            const randomDegree = Math.floor(Math.random() * 360);
+            const totalDegrees = (spins * 360) + randomDegree;
+            
+            currentRotation += totalDegrees;
+            const canvas = document.getElementById('canvas');
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+            // Espera terminar a animação CSS (4 segundos)
+            setTimeout(() => {
+                isSpinning = false;
+                
+                // Calcula o pedaço sorteado
+                const sliceAngle = 360 / itensAtuais.length;
+                // O ponteiro está no topo (-90 graus relativo ao canvas inicial)
+                const relativeDegree = (270 - (currentRotation % 360) + 360) % 360;
+                const winningIndex = Math.floor(relativeDegree / sliceAngle);
+                
+                document.getElementById('sorteado-nome').innerText = itensAtuais[winningIndex];
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('timer-box').style.display = 'block';
+                
+                playSuccessSound();
+            }, 4000);
+        }
+
+        // --- SISTEMA DE ÁUDIO E CRONÔMETRO ---
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Função para gerar o som eletrônico de tic-tac
+        function playTickSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playSuccessSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.5);
+        }
+
+        function playAlarmSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            // Simula um bipe de alarme
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0, audioCtx.currentTime + 0.5);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.6);
+        }
+
+        function updateTimerDisplay() {
+            let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            let s = (timeLeft % 60).toString().padStart(2, '0');
+            const display = document.getElementById('timer-display');
+            display.innerText = `${m}:${s}`;
+
+            if (timeLeft <= 10 && timeLeft > 0) {
+                display.classList.add('timer-urgent');
+                playTickSound();
+            } else {
+                display.classList.remove('timer-urgent');
+            }
+        }
+
+        function toggleTimer() {
+            initAudio();
+            const btn = document.getElementById('timer-ctrl-btn');
+            
+            if (timerRunning) {
+                clearInterval(timerInterval);
+                timerRunning = false;
+                btn.innerText = 'Retomar Tempo';
+            } else {
+                if (timeLeft === 0) return; // Não iniciar se zerado
+                timerRunning = true;
+                btn.innerText = 'Pausar Tempo';
+                
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    updateTimerDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        timerRunning = false;
+                        playAlarmSound();
+                        btn.innerText = 'Tempo Esgotado';
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 60;
+            timerRunning = false;
+            updateTimerDisplay();
+            document.getElementById('timer-ctrl-btn').innerText = 'Iniciar Tempo';
+            document.getElementById('timer-display').classList.remove('timer-urgent');
+        }
+    </script>
+</body>
+</html>
