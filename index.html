@@ -229,7 +229,7 @@
             <div id="result" class="result-box">
                 <p>Tema Sorteado:</p>
                 <h3 id="sorteado-nome">Conteúdo</h3>
-                <span class="points-badge">Vale 2 Pontos</span>
+                <span id="points-badge" class="points-badge">Vale 2 Pontos</span>
                 
                 <!-- Sessão do Cronômetro -->
                 <div id="timer-box" class="timer-container">
@@ -371,11 +371,15 @@
                 
                 // Calcula o pedaço sorteado
                 const sliceAngle = 360 / itensAtuais.length;
-                // O ponteiro está no topo (-90 graus relativo ao canvas inicial)
                 const relativeDegree = (270 - (currentRotation % 360) + 360) % 360;
                 const winningIndex = Math.floor(relativeDegree / sliceAngle);
                 
                 document.getElementById('sorteado-nome').innerText = itensAtuais[winningIndex];
+                
+                // Atualiza a pontuação conforme o ano selecionado
+                const pontosTexto = anoSelecionado === '7' ? 'Vale 2 Pontos' : 'Vale 1,5 Pontos';
+                document.getElementById('points-badge').innerText = pontosTexto;
+
                 document.getElementById('result').style.display = 'block';
                 document.getElementById('timer-box').style.display = 'block';
                 
@@ -394,7 +398,6 @@
             }
         }
 
-        // Função para gerar o som eletrônico de tic-tac
         function playTickSound() {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
@@ -432,7 +435,6 @@
             osc.type = 'square';
             osc.frequency.setValueAtTime(400, audioCtx.currentTime);
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            // Simula um bipe de alarme
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.2);
             gain.gain.setValueAtTime(0, audioCtx.currentTime + 0.3);
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.4);
@@ -464,7 +466,7 @@
                 timerRunning = false;
                 btn.innerText = 'Retomar Tempo';
             } else {
-                if (timeLeft === 0) return; // Não iniciar se zerado
+                if (timeLeft === 0) return;
                 timerRunning = true;
                 btn.innerText = 'Pausar Tempo';
                 
