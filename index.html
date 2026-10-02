@@ -264,6 +264,7 @@
         let itensAtuais = [];
         let isSpinning = false;
         let currentRotation = 0;
+        let historicoIndices = []; // Guarda o histórico de sorteios para não repetir nos últimos 10 giros
 
         // Variáveis do Cronômetro e Som
         let timerInterval = null;
@@ -291,6 +292,7 @@
 
         function selectAno(ano) {
             anoSelecionado = ano;
+            historicoIndices = []; // Limpa o histórico ao trocar o ano
             const niveis = jogoDados[ano];
             const btnContainer = document.getElementById('nivel-buttons');
             btnContainer.innerHTML = '';
@@ -307,6 +309,7 @@
         function selectNivel(index) {
             nivelSelecionado = jogoDados[anoSelecionado][index];
             itensAtuais = nivelSelecionado.itens;
+            historicoIndices = []; // Limpa o histórico ao selecionar um novo nível
             document.getElementById('jogo-titulo').innerText = nivelSelecionado.nome;
             drawWheel();
             showStep('step-jogo');
@@ -348,7 +351,7 @@
             }
         }
 
-        // Girar Roleta
+        // Girar Roleta com Controle de Repetição de 10 Rodadas
         function spinWheel() {
             if (isSpinning) return;
             initAudio(); // Ativa áudio no primeiro clique
@@ -356,23 +359,56 @@
             resetTimer();
             document.getElementById('result').style.display = 'none';
 
-            // Adiciona rotação extra aleatória (5 a 10 voltas + aleatório)
-            const spins = Math.floor(Math.random() * 5) + 5;
-            const randomDegree = Math.floor(Math.random() * 360);
-            const totalDegrees = (spins * 360) + randomDegree;
+            // Garante que o histórico mantenha no máximo 10 itens
+            if (historicoIndices.length >= 10) {
+                historicoIndices.shift();
+            }
+
+            // Filtra os itens disponíveis que ainda não foram sorteados nas últimas 10 rodadas
+            let disponiveis = [];
+            for (let i = 0; i < itensAtuais.length; i++) {
+                if (!historicoIndices.includes(i)) {
+                    disponiveis.push(i);
+                }
+            }
+
+            // Caso o nível tenha menos de 10 itens ou todos já tenham sido sorteados, libera o item mais antigo
+            while (disponiveis.length === 0 && historicoIndices.length > 0) {
+                historicoIndices.shift();
+                for (let i = 0; i < itensAtuais.length; i++) {
+                    if (!historicoIndices.includes(i)) {
+                        disponiveis.push(i);
+                    }
+                }
+            }
+
+            // Sorteia um dos índices disponíveis
+            const winningIndex = disponiveis[Math.floor(Math.random() * disponiveis.length)];
             
-            currentRotation += totalDegrees;
+            // Adiciona o termo sorteado ao histórico
+            historicoIndices.push(winningIndex);
+
+            // Cálculo para parar exatamente sobre a fatia sorteada
+            const sliceAngle = 360 / itensAtuais.length;
+            // Variação suave dentro da própria fatia (entre 20% e 80% da largura da fatia)
+            const sliceOffset = sliceAngle * (0.2 + Math.random() * 0.6);
+            const targetCanvasAngle = (winningIndex * sliceAngle) + sliceOffset;
+
+            // Ponteiro fixo no topo (270 graus). Ângulo final mod 360 necessário
+            const targetDegreeMod = (270 - targetCanvasAngle + 360) % 360;
+            const currentMod = currentRotation % 360;
+            const degreesToTarget = (targetDegreeMod - currentMod + 360) % 360;
+
+            // Adiciona de 5 a 8 voltas completas extras
+            const extraSpins = (Math.floor(Math.random() * 4) + 5) * 360;
+            currentRotation += extraSpins + degreesToTarget;
+
             const canvas = document.getElementById('canvas');
             canvas.style.transform = `rotate(${currentRotation}deg)`;
 
             // Espera terminar a animação CSS (4 segundos)
             setTimeout(() => {
                 isSpinning = false;
-                
-                // Calcula o pedaço sorteado
-                const sliceAngle = 360 / itensAtuais.length;
-                const relativeDegree = (270 - (currentRotation % 360) + 360) % 360;
-                const winningIndex = Math.floor(relativeDegree / sliceAngle);
                 
                 document.getElementById('sorteado-nome').innerText = itensAtuais[winningIndex];
                 
